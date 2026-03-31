@@ -122,7 +122,6 @@ CREATE INDEX IF NOT EXISTS idx_products_brand_trgm ON products USING GIN (LOWER(
 CREATE INDEX IF NOT EXISTS idx_products_description_trgm ON products USING GIN (LOWER(COALESCE(description, '')) gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id, placed_at DESC);
 CREATE INDEX IF NOT EXISTS idx_orders_pending_partial ON orders(placed_at DESC) WHERE status = 'pending';
-CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id, order_placed_at);
 CREATE INDEX IF NOT EXISTS idx_reviews_product_created ON reviews(product_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_cart_user ON cart(user_id, added_at DESC);
 CREATE INDEX IF NOT EXISTS idx_addresses_user ON user_addresses(user_id, is_default DESC, created_at DESC);
