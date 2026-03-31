@@ -1,12 +1,16 @@
 const API_URL = import.meta.env.VITE_API_URL || '/api';
-const USER_ID =
+let currentUserId =
   import.meta.env.VITE_USER_ID || '11111111-1111-1111-1111-111111111111';
+
+export function setApiUserId(userId) {
+  currentUserId = userId;
+}
 
 async function request(path, options = {}) {
   const response = await fetch(`${API_URL}${path}`, {
     headers: {
       'Content-Type': 'application/json',
-      'x-user-id': USER_ID,
+      'x-user-id': currentUserId,
       ...(options.headers || {})
     },
     ...options
@@ -32,6 +36,23 @@ export const api = {
   getAddresses() {
     return request('/customer/addresses');
   },
+  saveAddress(payload) {
+    return request('/customer/addresses', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  },
+  deleteAddress(addressId) {
+    return request(`/customer/addresses/${addressId}`, {
+      method: 'DELETE'
+    });
+  },
+  getProfiles() {
+    return request('/customer/profiles');
+  },
+  getCoupons() {
+    return request('/customer/coupons');
+  },
   getWishlist() {
     return request('/customer/wishlist');
   },
@@ -41,8 +62,9 @@ export const api = {
       body: JSON.stringify({ productId })
     });
   },
-  getCart() {
-    return request('/cart');
+  getCart(couponCode = '') {
+    const query = new URLSearchParams(couponCode ? { coupon: couponCode } : {});
+    return request(`/cart?${query.toString()}`);
   },
   updateCart(productId, quantity) {
     return request('/cart', {
@@ -56,11 +78,21 @@ export const api = {
   getOrders() {
     return request('/orders');
   },
-  checkout(method, addressId) {
+  getCheckoutQuote(couponCode = '') {
+    const query = new URLSearchParams(couponCode ? { coupon: couponCode } : {});
+    return request(`/orders/quote?${query.toString()}`);
+  },
+  checkout(method, addressId, couponCode) {
     return request('/orders/checkout', {
       method: 'POST',
-      body: JSON.stringify({ method, addressId })
+      body: JSON.stringify({ method, addressId, couponCode })
     });
+  },
+  cancelOrder(orderId) {
+    return request(`/orders/${orderId}/cancel`, { method: 'POST' });
+  },
+  returnOrder(orderId) {
+    return request(`/orders/${orderId}/return`, { method: 'POST' });
   },
   getDashboard() {
     return request('/analytics/dashboard');

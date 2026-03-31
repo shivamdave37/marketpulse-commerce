@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS products (
     name VARCHAR(255) NOT NULL,
     description TEXT,
     brand VARCHAR(120),
+    image_url TEXT,
     price NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
     stock_qty INT NOT NULL DEFAULT 0 CHECK (stock_qty >= 0),
     category_id INT REFERENCES categories(category_id) ON DELETE SET NULL,
@@ -33,8 +34,11 @@ CREATE TABLE IF NOT EXISTS products (
 CREATE TABLE IF NOT EXISTS orders (
     order_id UUID NOT NULL DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users_account(user_id) ON DELETE CASCADE,
-    status VARCHAR(30) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'shipped', 'delivered', 'cancelled')),
+    status VARCHAR(30) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'shipped', 'delivered', 'cancelled', 'returned')),
     total_amount NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (total_amount >= 0),
+    shipping_fee NUMERIC(10, 2) NOT NULL DEFAULT 0 CHECK (shipping_fee >= 0),
+    discount_amount NUMERIC(10, 2) NOT NULL DEFAULT 0 CHECK (discount_amount >= 0),
+    coupon_code VARCHAR(40),
     shipping_address JSONB,
     placed_at TIMESTAMP NOT NULL DEFAULT NOW(),
     PRIMARY KEY (order_id, placed_at)

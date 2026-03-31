@@ -12,6 +12,8 @@ import { useStorefront } from './hooks/useStorefront.js';
 
 export default function App() {
   const {
+    profiles,
+    currentUserId,
     catalog,
     cart,
     orders,
@@ -19,6 +21,9 @@ export default function App() {
     productDetail,
     addresses,
     wishlist,
+    coupons,
+    couponCode,
+    addressDraft,
     selectedAddressId,
     selectedPaymentMethod,
     filters,
@@ -32,8 +37,15 @@ export default function App() {
     openProduct,
     closeProduct,
     toggleWishlist,
+    saveAddress,
+    deleteAddress,
+    refreshQuote,
+    cancelOrder,
+    returnOrder,
     setSelectedAddressId,
-    setSelectedPaymentMethod
+    setSelectedPaymentMethod,
+    setCurrentUserId,
+    setAddressDraft
   } = useStorefront();
   const [checkoutMessage, setCheckoutMessage] = useState('');
   const featuredProduct = catalog.products[0];
@@ -50,10 +62,13 @@ export default function App() {
   return (
     <main className="page-shell">
       <Header
+        profiles={profiles}
+        currentUserId={currentUserId}
         filters={filters}
         cart={cart}
         orders={orders}
         wishlist={wishlist}
+        onProfileChange={setCurrentUserId}
         onSearchChange={(value) => updateFilters({ search: value })}
         onSortChange={(value) => updateFilters({ sort: value })}
       />
@@ -115,7 +130,12 @@ export default function App() {
                 onToggleWishlist={toggleWishlist}
                 busy={busy}
               />
-              <OrderTimeline orders={orders} />
+              <OrderTimeline
+                orders={orders}
+                onCancelOrder={cancelOrder}
+                onReturnOrder={returnOrder}
+                busy={busy}
+              />
             </>
           )}
         </div>
@@ -123,10 +143,18 @@ export default function App() {
         <CartPanel
           cart={cart}
           addresses={addresses}
+          coupons={coupons}
+          couponCode={couponCode}
+          addressDraft={addressDraft}
           selectedAddressId={selectedAddressId}
           selectedPaymentMethod={selectedPaymentMethod}
           onSelectAddress={setSelectedAddressId}
           onSelectPayment={setSelectedPaymentMethod}
+          onCouponChange={refreshQuote}
+          onAddressDraftChange={setAddressDraft}
+          onAddressSave={saveAddress}
+          onAddressDelete={deleteAddress}
+          onQuantityChange={addToCart}
           onRemove={removeFromCart}
           onCheckout={handleCheckout}
           busy={busy}

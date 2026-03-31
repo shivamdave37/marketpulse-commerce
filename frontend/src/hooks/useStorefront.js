@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
-import { api } from '../services/api.js';
+import { api, setApiUserId } from '../services/api.js';
 
 export function useStorefront() {
+  const [profiles, setProfiles] = useState([]);
+  const [currentUserId, setCurrentUserId] = useState(
+    import.meta.env.VITE_USER_ID || '11111111-1111-1111-1111-111111111111'
+  );
   const [catalog, setCatalog] = useState({ products: [], categories: [], stats: {} });
   const [cart, setCart] = useState({ items: [], summary: { items: 0, quantity: 0, subtotal: 0 } });
   const [orders, setOrders] = useState([]);
@@ -9,35 +13,49 @@ export function useStorefront() {
   const [productDetail, setProductDetail] = useState(null);
   const [addresses, setAddresses] = useState([]);
   const [wishlist, setWishlist] = useState([]);
+  const [coupons, setCoupons] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('card');
+  const [couponCode, setCouponCode] = useState('');
+  const [addressDraft, setAddressDraft] = useState(null);
   const [filters, setFilters] = useState({ search: '', category: '', sort: 'featured' });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  async function loadAll(nextFilters = filters) {
+  async function loadAll(nextFilters = filters, nextCouponCode = couponCode) {
     setLoading(true);
     setError('');
+    setApiUserId(currentUserId);
 
     try {
-      const [catalogData, cartData, orderData, dashboardData, addressData, wishlistData] = await Promise.all([
+      const [profileData, catalogData, cartData, orderData, dashboardData, addressData, wishlistData, couponData] = await Promise.all([
+        api.getProfiles(),
         api.getCatalog(nextFilters),
-        api.getCart(),
+        api.getCart(nextCouponCode),
         api.getOrders(),
         api.getDashboard(),
         api.getAddresses(),
-        api.getWishlist()
+        api.getWishlist(),
+        api.getCoupons()
       ]);
 
+      setProfiles(profileData.profiles);
       setCatalog(catalogData);
       setCart(cartData);
       setOrders(orderData.orders);
       setDashboard(dashboardData);
       setAddresses(addressData.addresses);
       setWishlist(wishlistData.wishlist);
+      setCoupons(couponData.coupons);
       const defaultAddress = addressData.addresses.find((item) => item.is_default) || addressData.addresses[0];
-      setSelectedAddressId((current) => current || defaultAddress?.address_id || '');
+      setSelectedAddressId((current) => {
+        if (addressData.addresses.some((item) => item.address_id === current)) {
+          return current;
+        }
+
+        return defaultAddress?.address_id || '';
+      });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -47,7 +65,7 @@ export function useStorefront() {
 
   useEffect(() => {
     loadAll();
-  }, []);
+  }, [currentUserId]);
 
   async function updateFilters(next) {
     const merged = { ...filters, ...next };
@@ -58,8 +76,9 @@ export function useStorefront() {
   async function addToCart(productId, quantity = 1) {
     setBusy(true);
     try {
-      const updated = await api.updateCart(productId, quantity);
-      setCart(updated);
+      await api.updateCart(productId, quantity);
+      const refreshed = await api.getCart(couponCode);
+      setCart(refreshed);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -70,8 +89,9 @@ export function useStorefront() {
   async function removeFromCart(productId) {
     setBusy(true);
     try {
-      const updated = await api.removeCart(productId);
-      setCart(updated);
+      await api.removeCart(productId);
+      const refreshed = await api.getCart(couponCode);
+      setCart(refreshed);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -82,7 +102,8 @@ export function useStorefront() {
   async function placeCheckout(method) {
     setBusy(true);
     try {
-      const result = await api.checkout(method, selectedAddressId);
+      const result = await api.checkout(method, selectedAddressId, couponCode);
+      setCouponCode('');
       await loadAll(filters);
       return result;
     } catch (err) {
@@ -121,7 +142,84 @@ export function useStorefront() {
     }
   }
 
+  async function saveAddress(payload) {
+    setBusy(true);
+    try {
+      const result = await api.saveAddress(payload);
+      setAddresses(result.addresses);
+      setAddressDraft(null);
+      const defaultAddress = result.addresses.find((item) => item.is_default) || result.addresses[0];
+      setSelectedAddressId(defaultAddress?.address_id || '');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deleteAddress(addressId) {
+    setBusy(true);
+    try {
+      const result = await api.deleteAddress(addressId);
+      setAddresses(result.addresses);
+      const defaultAddress = result.addresses.find((item) => item.is_default) || result.addresses[0];
+      setSelectedAddressId(defaultAddress?.address_id || '');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function refreshQuote(nextCouponCode) {
+    setBusy(true);
+    try {
+      const [quoteResult, cartResult] = await Promise.all([
+        api.getCheckoutQuote(nextCouponCode),
+        api.getCart(nextCouponCode)
+      ]);
+      setCouponCode(nextCouponCode);
+      setCart({
+        ...cartResult,
+        summary: {
+          ...cartResult.summary,
+          ...quoteResult.quote
+        }
+      });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function cancelOrder(orderId) {
+    setBusy(true);
+    try {
+      const result = await api.cancelOrder(orderId);
+      setOrders(result.orders);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function returnOrder(orderId) {
+    setBusy(true);
+    try {
+      const result = await api.returnOrder(orderId);
+      setOrders(result.orders);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return {
+    profiles,
+    currentUserId,
     catalog,
     cart,
     orders,
@@ -129,8 +227,11 @@ export function useStorefront() {
     productDetail,
     addresses,
     wishlist,
+    coupons,
     selectedAddressId,
     selectedPaymentMethod,
+    couponCode,
+    addressDraft,
     filters,
     loading,
     busy,
@@ -142,7 +243,14 @@ export function useStorefront() {
     openProduct,
     closeProduct,
     toggleWishlist,
+    saveAddress,
+    deleteAddress,
+    refreshQuote,
+    cancelOrder,
+    returnOrder,
     setSelectedAddressId,
-    setSelectedPaymentMethod
+    setSelectedPaymentMethod,
+    setCurrentUserId,
+    setAddressDraft
   };
 }

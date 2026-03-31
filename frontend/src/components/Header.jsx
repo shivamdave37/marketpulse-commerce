@@ -1,8 +1,11 @@
 export default function Header({
+  profiles,
+  currentUserId,
   filters,
   cart,
   orders,
   wishlist,
+  onProfileChange,
   onSearchChange,
   onSortChange
 }) {
@@ -28,6 +31,17 @@ export default function Header({
           <span>Deliver to</span>
           <strong>Bengaluru 560001</strong>
         </div>
+
+        <label className="profile-switch">
+          <span>Profile</span>
+          <select value={currentUserId} onChange={(event) => onProfileChange(event.target.value)}>
+            {profiles.map((profile) => (
+              <option key={profile.user_id} value={profile.user_id}>
+                {profile.full_name}
+              </option>
+            ))}
+          </select>
+        </label>
 
         <div className="search-cluster">
           <label className="search-field">

@@ -19,6 +19,7 @@ export default function ProductGrid({
       {products.map((product) => (
         <article key={product.product_id} className="product-card">
           <div className="product-card__visual">
+            {product.image_url ? <img src={product.image_url} alt={product.name} className="product-image" /> : null}
             <span className="product-badge">
               {Number(product.avg_rating) >= 4.5 ? 'Top Rated' : 'Trending'}
             </span>

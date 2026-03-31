@@ -1,5 +1,6 @@
 import { pool } from '../db/pool.js';
 import { invalidateCache } from './cacheService.js';
+import { calculateOrderPricing } from './pricingService.js';
 
 export async function listOrders(userId) {
   const { rows } = await pool.query(
@@ -8,6 +9,10 @@ export async function listOrders(userId) {
         o.order_id,
         o.status,
         o.total_amount,
+        o.shipping_fee,
+        o.discount_amount,
+        o.coupon_code,
+        o.shipping_address,
         o.placed_at,
         p.method AS payment_method,
         p.status AS payment_status,
@@ -36,7 +41,23 @@ export async function listOrders(userId) {
   return rows;
 }
 
-export async function checkoutCart(userId, paymentMethod = 'card', addressId = null) {
+export async function getCheckoutQuote(userId, couponCode = '') {
+  const cart = await pool.query(
+    `
+      SELECT
+        SUM(c.quantity * p.price)::numeric(12, 2) AS subtotal
+      FROM cart c
+      JOIN products p ON p.product_id = c.product_id
+      WHERE c.user_id = $1;
+    `,
+    [userId]
+  );
+
+  const subtotal = Number(cart.rows[0]?.subtotal || 0);
+  return calculateOrderPricing(subtotal, couponCode);
+}
+
+export async function checkoutCart(userId, paymentMethod = 'card', addressId = null, couponCode = '') {
   const client = await pool.connect();
 
   try {
@@ -96,22 +117,34 @@ export async function checkoutCart(userId, paymentMethod = 'card', addressId = n
       }
     }
 
+    const subtotal = cartResult.rows.reduce(
+      (sum, item) => sum + Number(item.price) * Number(item.quantity),
+      0
+    );
+    const pricing = calculateOrderPricing(subtotal, couponCode);
+
     const orderInsert = await client.query(
       `
-        INSERT INTO orders (user_id, status, total_amount, shipping_address, placed_at)
-        VALUES ($1, 'paid', 0, $2, NOW())
+        INSERT INTO orders (
+          user_id, status, total_amount, shipping_fee, discount_amount, coupon_code, shipping_address, placed_at
+        )
+        VALUES ($1, 'paid', $2, $3, $4, $5, $6, NOW())
         RETURNING order_id, placed_at;
       `,
-      [userId, JSON.stringify(shippingAddress)]
+      [
+        userId,
+        pricing.totalAmount,
+        pricing.shippingFee,
+        pricing.discountAmount,
+        pricing.appliedCoupon,
+        JSON.stringify(shippingAddress)
+      ]
     );
 
     const orderId = orderInsert.rows[0].order_id;
     const orderPlacedAt = orderInsert.rows[0].placed_at;
-    let totalAmount = 0;
 
     for (const item of cartResult.rows) {
-      totalAmount += Number(item.price) * Number(item.quantity);
-
       await client.query(
         `
           INSERT INTO order_items (order_id, order_placed_at, product_id, qty, unit_price)
@@ -132,15 +165,6 @@ export async function checkoutCart(userId, paymentMethod = 'card', addressId = n
 
     await client.query(
       `
-        UPDATE orders
-        SET total_amount = $1
-        WHERE order_id = $2 AND placed_at = $3;
-      `,
-      [totalAmount, orderId, orderPlacedAt]
-    );
-
-    await client.query(
-      `
         INSERT INTO payments (order_id, order_placed_at, method, status, paid_at)
         VALUES ($1, $2, $3, 'paid', NOW());
       `,
@@ -156,7 +180,7 @@ export async function checkoutCart(userId, paymentMethod = 'card', addressId = n
 
     return {
       orderId,
-      totalAmount: Number(totalAmount.toFixed(2)),
+      totalAmount: pricing.totalAmount,
       orders: await listOrders(userId)
     };
   } catch (error) {
@@ -165,4 +189,42 @@ export async function checkoutCart(userId, paymentMethod = 'card', addressId = n
   } finally {
     client.release();
   }
+}
+
+export async function updateOrderStatus(userId, orderId, nextStatus) {
+  const allowedStatuses = {
+    cancelled: ['pending', 'paid'],
+    returned: ['delivered']
+  };
+
+  const { rows } = await pool.query(
+    `
+      SELECT order_id, status
+      FROM orders
+      WHERE user_id = $1 AND order_id = $2
+      ORDER BY placed_at DESC
+      LIMIT 1;
+    `,
+    [userId, orderId]
+  );
+
+  if (!rows.length) {
+    throw new Error('Order not found.');
+  }
+
+  if (!allowedStatuses[nextStatus]?.includes(rows[0].status)) {
+    throw new Error(`Order cannot be marked as ${nextStatus}.`);
+  }
+
+  await pool.query(
+    `
+      UPDATE orders
+      SET status = $1
+      WHERE user_id = $2 AND order_id = $3;
+    `,
+    [nextStatus, userId, orderId]
+  );
+
+  invalidateCache('dashboard:');
+  return listOrders(userId);
 }

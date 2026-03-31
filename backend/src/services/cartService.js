@@ -1,6 +1,7 @@
 import { pool } from '../db/pool.js';
+import { calculateOrderPricing } from './pricingService.js';
 
-export async function getCart(userId) {
+export async function getCart(userId, couponCode = '') {
   const { rows } = await pool.query(
     `
       SELECT
@@ -33,16 +34,31 @@ export async function getCart(userId) {
     { items: 0, quantity: 0, subtotal: 0 }
   );
 
+  const pricing = calculateOrderPricing(summary.subtotal, couponCode);
+
   return {
     items: rows,
     summary: {
       ...summary,
-      subtotal: Number(summary.subtotal.toFixed(2))
+      subtotal: pricing.subtotal,
+      shippingFee: pricing.shippingFee,
+      discountAmount: pricing.discountAmount,
+      totalAmount: pricing.totalAmount,
+      appliedCoupon: pricing.appliedCoupon
     }
   };
 }
 
 export async function upsertCartItem(userId, productId, quantity) {
+  if (quantity <= 0) {
+    await pool.query(`DELETE FROM cart WHERE user_id = $1 AND product_id = $2`, [
+      userId,
+      productId
+    ]);
+
+    return getCart(userId);
+  }
+
   await pool.query(
     `
       INSERT INTO cart (user_id, product_id, quantity)

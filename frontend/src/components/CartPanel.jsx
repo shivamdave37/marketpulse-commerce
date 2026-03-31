@@ -9,10 +9,18 @@ function formatCurrency(value) {
 export default function CartPanel({
   cart,
   addresses,
+  coupons,
+  couponCode,
+  addressDraft,
   selectedAddressId,
   selectedPaymentMethod,
   onSelectAddress,
   onSelectPayment,
+  onCouponChange,
+  onAddressDraftChange,
+  onAddressSave,
+  onAddressDelete,
+  onQuantityChange,
   onRemove,
   onCheckout,
   busy
@@ -35,6 +43,57 @@ export default function CartPanel({
           </select>
         </label>
 
+        <div className="address-actions">
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() =>
+              onAddressDraftChange({
+                addressId: '',
+                label: 'Home',
+                recipientName: '',
+                phone: '',
+                line1: '',
+                city: '',
+                state: '',
+                postalCode: '',
+                country: 'India',
+                isDefault: addresses.length === 0
+              })
+            }
+          >
+            Add address
+          </button>
+          {selectedAddressId ? (
+            <button className="secondary-button" type="button" onClick={() => onAddressDelete(selectedAddressId)}>
+              Delete selected
+            </button>
+          ) : null}
+        </div>
+
+        {addressDraft ? (
+          <div className="address-form">
+            <input placeholder="Label" value={addressDraft.label} onChange={(event) => onAddressDraftChange({ ...addressDraft, label: event.target.value })} />
+            <input placeholder="Recipient name" value={addressDraft.recipientName} onChange={(event) => onAddressDraftChange({ ...addressDraft, recipientName: event.target.value })} />
+            <input placeholder="Phone" value={addressDraft.phone} onChange={(event) => onAddressDraftChange({ ...addressDraft, phone: event.target.value })} />
+            <input placeholder="Address line" value={addressDraft.line1} onChange={(event) => onAddressDraftChange({ ...addressDraft, line1: event.target.value })} />
+            <input placeholder="City" value={addressDraft.city} onChange={(event) => onAddressDraftChange({ ...addressDraft, city: event.target.value })} />
+            <input placeholder="State" value={addressDraft.state} onChange={(event) => onAddressDraftChange({ ...addressDraft, state: event.target.value })} />
+            <input placeholder="Postal code" value={addressDraft.postalCode} onChange={(event) => onAddressDraftChange({ ...addressDraft, postalCode: event.target.value })} />
+            <label className="checkbox-row">
+              <input
+                type="checkbox"
+                checked={Boolean(addressDraft.isDefault)}
+                onChange={(event) => onAddressDraftChange({ ...addressDraft, isDefault: event.target.checked })}
+              />
+              <span>Set as default</span>
+            </label>
+            <button className="primary-button" type="button" onClick={() => onAddressSave(addressDraft)}>
+              Save address
+            </button>
+          </div>
+        ) : null}
+
         <div className="payment-choice">
           <span>Payment</span>
           <div className="payment-choice__row">
@@ -47,6 +106,25 @@ export default function CartPanel({
               >
                 <strong>{method.toUpperCase()}</strong>
                 <span>Demo</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="coupon-panel">
+          <label className="field">
+            <span>Coupon</span>
+            <input
+              placeholder="SAVE10 / FREESHIP / WELCOME250"
+              value={couponCode}
+              onChange={(event) => onCouponChange(event.target.value.toUpperCase())}
+            />
+          </label>
+          <div className="coupon-list">
+            {coupons.map((coupon) => (
+              <button key={coupon.code} type="button" className="chip" onClick={() => onCouponChange(coupon.code)}>
+                <strong>{coupon.code}</strong>
+                <span>{coupon.type}</span>
               </button>
             ))}
           </div>
@@ -64,6 +142,11 @@ export default function CartPanel({
               <div>
                 <strong>{item.name}</strong>
                 <p>{item.brand}</p>
+                <div className="qty-controls">
+                  <button type="button" onClick={() => onQuantityChange(item.product_id, item.quantity - 1)} disabled={busy}>-</button>
+                  <span>{item.quantity}</span>
+                  <button type="button" onClick={() => onQuantityChange(item.product_id, item.quantity + 1)} disabled={busy}>+</button>
+                </div>
               </div>
               <div>
                 <strong>{formatCurrency(item.price * item.quantity)}</strong>
@@ -82,8 +165,16 @@ export default function CartPanel({
           <span>Subtotal</span>
           <strong>{formatCurrency(cart.summary.subtotal || 0)}</strong>
         </div>
+        <div>
+          <span>Shipping</span>
+          <strong>{formatCurrency(cart.summary.shippingFee || 0)}</strong>
+        </div>
+        <div>
+          <span>Discount</span>
+          <strong>{formatCurrency(cart.summary.discountAmount || 0)}</strong>
+        </div>
         <button className="primary-button" onClick={onCheckout} disabled={busy || !cart.items.length}>
-          Proceed to buy
+          Pay {formatCurrency(cart.summary.totalAmount || cart.summary.subtotal || 0)}
         </button>
       </div>
     </aside>

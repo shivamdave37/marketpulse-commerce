@@ -6,7 +6,7 @@ function formatCurrency(value) {
   }).format(value || 0);
 }
 
-export default function OrderTimeline({ orders }) {
+export default function OrderTimeline({ orders, onCancelOrder, onReturnOrder, busy }) {
   return (
     <section className="panel">
       <div className="panel__head">
@@ -32,6 +32,18 @@ export default function OrderTimeline({ orders }) {
                     {item.name} x {item.qty}
                   </span>
                 ))}
+              </div>
+              <div className="order-actions">
+                {['pending', 'paid'].includes(order.status) ? (
+                  <button type="button" className="secondary-button" onClick={() => onCancelOrder(order.order_id)} disabled={busy}>
+                    Cancel order
+                  </button>
+                ) : null}
+                {order.status === 'delivered' ? (
+                  <button type="button" className="secondary-button" onClick={() => onReturnOrder(order.order_id)} disabled={busy}>
+                    Return order
+                  </button>
+                ) : null}
               </div>
             </article>
           ))}

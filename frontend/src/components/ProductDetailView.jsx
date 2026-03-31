@@ -31,6 +31,7 @@ export default function ProductDetailView({
       <div className="detail-hero">
         <div className="detail-gallery">
           <div className="detail-image-card">
+            {product.image_url ? <img src={product.image_url} alt={product.name} className="detail-image" /> : null}
             <span className="detail-badge">MarketPulse Assured</span>
             <strong>{product.brand}</strong>
             <p>{product.category_name}</p>

@@ -58,7 +58,11 @@ export async function migrateLegacyOrders(client) {
   }
 
   await client.query(`
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS image_url TEXT;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_address JSONB;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_fee NUMERIC(10, 2) NOT NULL DEFAULT 0;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_amount NUMERIC(10, 2) NOT NULL DEFAULT 0;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon_code VARCHAR(40);
     ALTER TABLE order_items DROP CONSTRAINT IF EXISTS fk_order_items_order;
     ALTER TABLE order_items DROP CONSTRAINT IF EXISTS order_items_order_id_fkey;
     ALTER TABLE order_items DROP CONSTRAINT IF EXISTS order_items_order_id_order_placed_at_product_id_key;
@@ -90,8 +94,11 @@ export async function migrateLegacyOrders(client) {
     CREATE TABLE IF NOT EXISTS orders_partitioned (
       order_id UUID NOT NULL DEFAULT gen_random_uuid(),
       user_id UUID NOT NULL REFERENCES users_account(user_id) ON DELETE CASCADE,
-      status VARCHAR(30) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'shipped', 'delivered', 'cancelled')),
+      status VARCHAR(30) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'shipped', 'delivered', 'cancelled', 'returned')),
       total_amount NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (total_amount >= 0),
+      shipping_fee NUMERIC(10, 2) NOT NULL DEFAULT 0 CHECK (shipping_fee >= 0),
+      discount_amount NUMERIC(10, 2) NOT NULL DEFAULT 0 CHECK (discount_amount >= 0),
+      coupon_code VARCHAR(40),
       shipping_address JSONB,
       placed_at TIMESTAMP NOT NULL DEFAULT NOW(),
       PRIMARY KEY (order_id, placed_at)
@@ -127,8 +134,8 @@ export async function migrateLegacyOrders(client) {
   }
 
   await client.query(`
-    INSERT INTO orders_partitioned (order_id, user_id, status, total_amount, shipping_address, placed_at)
-    SELECT order_id, user_id, status, total_amount, shipping_address, placed_at
+    INSERT INTO orders_partitioned (order_id, user_id, status, total_amount, shipping_fee, discount_amount, coupon_code, shipping_address, placed_at)
+    SELECT order_id, user_id, status, total_amount, shipping_fee, discount_amount, coupon_code, shipping_address, placed_at
     FROM orders
     ON CONFLICT (order_id, placed_at) DO NOTHING;
   `);

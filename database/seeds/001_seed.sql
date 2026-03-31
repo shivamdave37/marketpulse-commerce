@@ -2,7 +2,8 @@ INSERT INTO users_account (user_id, full_name, email, phone, role)
 VALUES
 ('11111111-1111-1111-1111-111111111111', 'Aarav Sharma', 'aarav@marketpulse.shop', '+919999000001', 'customer'),
 ('22222222-2222-2222-2222-222222222222', 'Meera Nair', 'meera@marketpulse.shop', '+919999000002', 'customer'),
-('33333333-3333-3333-3333-333333333333', 'Admin Ops', 'admin@marketpulse.shop', '+919999000003', 'admin')
+('33333333-3333-3333-3333-333333333333', 'Admin Ops', 'admin@marketpulse.shop', '+919999000003', 'admin'),
+('44444444-4444-4444-4444-444444444444', 'Kabir Singh', 'kabir@marketpulse.shop', '+919999000004', 'customer')
 ON CONFLICT (user_id) DO NOTHING;
 
 INSERT INTO categories (category_id, name, parent_id, slug) VALUES
@@ -20,20 +21,20 @@ slug = EXCLUDED.slug;
 
 SELECT setval('categories_category_id_seq', (SELECT MAX(category_id) FROM categories));
 
-INSERT INTO products (product_id, name, description, brand, price, stock_qty, category_id)
+INSERT INTO products (product_id, name, description, brand, image_url, price, stock_qty, category_id)
 VALUES
-('a1111111-1111-1111-1111-111111111111', 'Nova X Pro Smartphone', 'Flagship phone with AMOLED display, 5G support, and all-day battery.', 'Nova', 64999.00, 18, 2),
-('a2222222-2222-2222-2222-222222222222', 'PulseBook Air 14', 'Lightweight productivity laptop with Ryzen performance and vivid display.', 'PulseTech', 72999.00, 11, 3),
-('a3333333-3333-3333-3333-333333333333', 'EchoBuds Max', 'Noise cancelling wireless earbuds with spatial sound and fast pairing.', 'SonicArc', 8999.00, 42, 6),
-('a4444444-4444-4444-4444-444444444444', 'ChefFlow Smart Blender', 'High-speed kitchen blender with app presets and self-clean mode.', 'ChefFlow', 7499.00, 26, 4),
-('a5555555-5555-5555-5555-555555555555', 'StrideFit Everyday Sneakers', 'Breathable lightweight sneakers built for city walks and long wear.', 'StrideFit', 3499.00, 35, 5),
-('a6666666-6666-6666-6666-666666666666', 'Orbit Watch S2', 'Fitness smartwatch with sleep tracking, GPS, and seven-day battery.', 'Orbit', 11999.00, 24, 7),
-('a7777777-7777-7777-7777-777777777777', 'ViewMax 55 4K TV', '55-inch 4K smart TV with HDR support and voice remote.', 'ViewMax', 45999.00, 9, 1),
-('a8888888-8888-8888-8888-888888888888', 'Nimbus Stand Mixer', 'Countertop mixer with 6 speed levels for baking and meal prep.', 'Nimbus', 12999.00, 14, 4),
-('a9999999-9999-9999-9999-999999999999', 'AeroCarry Cabin Backpack', 'Travel-ready backpack with laptop sleeve, bottle pockets, and anti-theft zip.', 'AeroCarry', 2899.00, 51, 5),
-('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'PulseSound Party Speaker', 'Portable party speaker with bass boost, RGB lighting, and 12-hour battery.', 'PulseSound', 15499.00, 17, 6),
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'HomeBrew Coffee Machine', 'Compact coffee machine with milk frother and programmable brewing.', 'HomeBrew', 18499.00, 13, 4),
-('cccccccc-cccc-cccc-cccc-cccccccccccc', 'SkyTab 11', 'Entertainment tablet with stereo speakers, long battery life, and bright display.', 'SkyTab', 22999.00, 19, 1)
+('a1111111-1111-1111-1111-111111111111', 'Nova X Pro Smartphone', 'Flagship phone with AMOLED display, 5G support, and all-day battery.', 'Nova', 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=900&q=80', 64999.00, 18, 2),
+('a2222222-2222-2222-2222-222222222222', 'PulseBook Air 14', 'Lightweight productivity laptop with Ryzen performance and vivid display.', 'PulseTech', 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=900&q=80', 72999.00, 11, 3),
+('a3333333-3333-3333-3333-333333333333', 'EchoBuds Max', 'Noise cancelling wireless earbuds with spatial sound and fast pairing.', 'SonicArc', 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=900&q=80', 8999.00, 42, 6),
+('a4444444-4444-4444-4444-444444444444', 'ChefFlow Smart Blender', 'High-speed kitchen blender with app presets and self-clean mode.', 'ChefFlow', 'https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=900&q=80', 7499.00, 26, 4),
+('a5555555-5555-5555-5555-555555555555', 'StrideFit Everyday Sneakers', 'Breathable lightweight sneakers built for city walks and long wear.', 'StrideFit', 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80', 3499.00, 35, 5),
+('a6666666-6666-6666-6666-666666666666', 'Orbit Watch S2', 'Fitness smartwatch with sleep tracking, GPS, and seven-day battery.', 'Orbit', 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=80', 11999.00, 24, 7),
+('a7777777-7777-7777-7777-777777777777', 'ViewMax 55 4K TV', '55-inch 4K smart TV with HDR support and voice remote.', 'ViewMax', 'https://images.unsplash.com/photo-1593784991095-a205069470b6?auto=format&fit=crop&w=900&q=80', 45999.00, 9, 1),
+('a8888888-8888-8888-8888-888888888888', 'Nimbus Stand Mixer', 'Countertop mixer with 6 speed levels for baking and meal prep.', 'Nimbus', 'https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&w=900&q=80', 12999.00, 14, 4),
+('a9999999-9999-9999-9999-999999999999', 'AeroCarry Cabin Backpack', 'Travel-ready backpack with laptop sleeve, bottle pockets, and anti-theft zip.', 'AeroCarry', 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80', 2899.00, 51, 5),
+('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'PulseSound Party Speaker', 'Portable party speaker with bass boost, RGB lighting, and 12-hour battery.', 'PulseSound', 'https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&w=900&q=80', 15499.00, 17, 6),
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'HomeBrew Coffee Machine', 'Compact coffee machine with milk frother and programmable brewing.', 'HomeBrew', 'https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6?auto=format&fit=crop&w=900&q=80', 18499.00, 13, 4),
+('cccccccc-cccc-cccc-cccc-cccccccccccc', 'SkyTab 11', 'Entertainment tablet with stereo speakers, long battery life, and bright display.', 'SkyTab', 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?auto=format&fit=crop&w=900&q=80', 22999.00, 19, 1)
 ON CONFLICT (product_id) DO NOTHING;
 
 INSERT INTO reviews (review_id, product_id, user_id, rating, body, created_at)
@@ -158,7 +159,9 @@ INSERT INTO user_addresses (
 )
 VALUES
 ('1111aaaa-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'Home', 'Aarav Sharma', '+919999000001', '221 Residency Road', 'Bengaluru', 'Karnataka', '560001', 'India', TRUE),
-('2222aaaa-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', 'Office', 'Aarav Sharma', '+919999000001', '14 MG Road Tech Park', 'Bengaluru', 'Karnataka', '560008', 'India', FALSE)
+('2222aaaa-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', 'Office', 'Aarav Sharma', '+919999000001', '14 MG Road Tech Park', 'Bengaluru', 'Karnataka', '560008', 'India', FALSE),
+('3333bbbb-3333-3333-3333-333333333333', '22222222-2222-2222-2222-222222222222', 'Home', 'Meera Nair', '+919999000002', '88 Marine Drive', 'Kochi', 'Kerala', '682031', 'India', TRUE),
+('4444bbbb-4444-4444-4444-444444444444', '44444444-4444-4444-4444-444444444444', 'Home', 'Kabir Singh', '+919999000004', '19 Park Street', 'Mumbai', 'Maharashtra', '400001', 'India', TRUE)
 ON CONFLICT (address_id) DO NOTHING;
 
 INSERT INTO wishlist_items (wishlist_id, user_id, product_id)
