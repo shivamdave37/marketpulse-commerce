@@ -65,6 +65,23 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error('Failed to run SQL files:', error.message);
+  console.error('Failed to run SQL files:', error.message || error);
+
+  if (error.detail) {
+    console.error('Detail:', error.detail);
+  }
+
+  if (error.hint) {
+    console.error('Hint:', error.hint);
+  }
+
+  if (error.where) {
+    console.error('Where:', error.where);
+  }
+
+  if (error.stack) {
+    console.error(error.stack);
+  }
+
   process.exit(1);
 });

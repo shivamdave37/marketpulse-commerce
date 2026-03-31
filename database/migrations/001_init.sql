@@ -42,7 +42,30 @@ CREATE TABLE IF NOT EXISTS orders (
     shipping_address JSONB,
     placed_at TIMESTAMP NOT NULL DEFAULT NOW(),
     PRIMARY KEY (order_id, placed_at)
-);
+) PARTITION BY RANGE (placed_at);
+
+CREATE TABLE IF NOT EXISTS orders_default PARTITION OF orders DEFAULT;
+
+DO $$
+DECLARE
+    base_date DATE := date_trunc('month', NOW())::DATE;
+    start_date DATE;
+    end_date DATE;
+    partition_name TEXT;
+BEGIN
+    FOR month_offset IN -2..4 LOOP
+        start_date := (base_date + make_interval(months => month_offset))::DATE;
+        end_date := (base_date + make_interval(months => month_offset + 1))::DATE;
+        partition_name := format('orders_%s', to_char(start_date, 'YYYY_MM'));
+
+        EXECUTE format(
+            'CREATE TABLE IF NOT EXISTS %I PARTITION OF orders FOR VALUES FROM (%L) TO (%L);',
+            partition_name,
+            start_date,
+            end_date
+        );
+    END LOOP;
+END $$;
 
 CREATE TABLE IF NOT EXISTS order_items (
     item_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
