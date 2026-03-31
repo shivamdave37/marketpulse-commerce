@@ -45,22 +45,102 @@ VALUES
 ('c1111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'delivered', 73998.00, NOW() - INTERVAL '12 days'),
 ('c2222222-2222-2222-2222-222222222222', '22222222-2222-2222-2222-222222222222', 'paid', 20998.00, NOW() - INTERVAL '6 days'),
 ('c3333333-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111', 'pending', 3499.00, NOW() - INTERVAL '1 day')
-ON CONFLICT (order_id) DO NOTHING;
+ON CONFLICT (order_id, placed_at) DO NOTHING;
 
-INSERT INTO order_items (item_id, order_id, product_id, qty, unit_price)
-VALUES
-('d1111111-1111-1111-1111-111111111111', 'c1111111-1111-1111-1111-111111111111', 'a1111111-1111-1111-1111-111111111111', 1, 64999.00),
-('d2222222-2222-2222-2222-222222222222', 'c1111111-1111-1111-1111-111111111111', 'a3333333-3333-3333-3333-333333333333', 1, 8999.00),
-('d3333333-3333-3333-3333-333333333333', 'c2222222-2222-2222-2222-222222222222', 'a6666666-6666-6666-6666-666666666666', 1, 11999.00),
-('d4444444-4444-4444-4444-444444444444', 'c2222222-2222-2222-2222-222222222222', 'a4444444-4444-4444-4444-444444444444', 1, 7499.00),
-('d5555555-5555-5555-5555-555555555555', 'c3333333-3333-3333-3333-333333333333', 'a5555555-5555-5555-5555-555555555555', 1, 3499.00)
+INSERT INTO order_items (item_id, order_id, order_placed_at, product_id, qty, unit_price)
+SELECT
+    'd1111111-1111-1111-1111-111111111111',
+    o.order_id,
+    o.placed_at,
+    'a1111111-1111-1111-1111-111111111111',
+    1,
+    64999.00
+FROM orders o
+WHERE o.order_id = 'c1111111-1111-1111-1111-111111111111'
 ON CONFLICT (item_id) DO NOTHING;
 
-INSERT INTO payments (payment_id, order_id, method, status, paid_at)
-VALUES
-('e1111111-1111-1111-1111-111111111111', 'c1111111-1111-1111-1111-111111111111', 'card', 'paid', NOW() - INTERVAL '12 days'),
-('e2222222-2222-2222-2222-222222222222', 'c2222222-2222-2222-2222-222222222222', 'upi', 'paid', NOW() - INTERVAL '6 days'),
-('e3333333-3333-3333-3333-333333333333', 'c3333333-3333-3333-3333-333333333333', 'cod', 'pending', NULL)
+INSERT INTO order_items (item_id, order_id, order_placed_at, product_id, qty, unit_price)
+SELECT
+    'd2222222-2222-2222-2222-222222222222',
+    o.order_id,
+    o.placed_at,
+    'a3333333-3333-3333-3333-333333333333',
+    1,
+    8999.00
+FROM orders o
+WHERE o.order_id = 'c1111111-1111-1111-1111-111111111111'
+ON CONFLICT (item_id) DO NOTHING;
+
+INSERT INTO order_items (item_id, order_id, order_placed_at, product_id, qty, unit_price)
+SELECT
+    'd3333333-3333-3333-3333-333333333333',
+    o.order_id,
+    o.placed_at,
+    'a6666666-6666-6666-6666-666666666666',
+    1,
+    11999.00
+FROM orders o
+WHERE o.order_id = 'c2222222-2222-2222-2222-222222222222'
+ON CONFLICT (item_id) DO NOTHING;
+
+INSERT INTO order_items (item_id, order_id, order_placed_at, product_id, qty, unit_price)
+SELECT
+    'd4444444-4444-4444-4444-444444444444',
+    o.order_id,
+    o.placed_at,
+    'a4444444-4444-4444-4444-444444444444',
+    1,
+    7499.00
+FROM orders o
+WHERE o.order_id = 'c2222222-2222-2222-2222-222222222222'
+ON CONFLICT (item_id) DO NOTHING;
+
+INSERT INTO order_items (item_id, order_id, order_placed_at, product_id, qty, unit_price)
+SELECT
+    'd5555555-5555-5555-5555-555555555555',
+    o.order_id,
+    o.placed_at,
+    'a5555555-5555-5555-5555-555555555555',
+    1,
+    3499.00
+FROM orders o
+WHERE o.order_id = 'c3333333-3333-3333-3333-333333333333'
+ON CONFLICT (item_id) DO NOTHING;
+
+INSERT INTO payments (payment_id, order_id, order_placed_at, method, status, paid_at)
+SELECT
+    'e1111111-1111-1111-1111-111111111111',
+    o.order_id,
+    o.placed_at,
+    'card',
+    'paid',
+    NOW() - INTERVAL '12 days'
+FROM orders o
+WHERE o.order_id = 'c1111111-1111-1111-1111-111111111111'
+ON CONFLICT (payment_id) DO NOTHING;
+
+INSERT INTO payments (payment_id, order_id, order_placed_at, method, status, paid_at)
+SELECT
+    'e2222222-2222-2222-2222-222222222222',
+    o.order_id,
+    o.placed_at,
+    'upi',
+    'paid',
+    NOW() - INTERVAL '6 days'
+FROM orders o
+WHERE o.order_id = 'c2222222-2222-2222-2222-222222222222'
+ON CONFLICT (payment_id) DO NOTHING;
+
+INSERT INTO payments (payment_id, order_id, order_placed_at, method, status, paid_at)
+SELECT
+    'e3333333-3333-3333-3333-333333333333',
+    o.order_id,
+    o.placed_at,
+    'cod',
+    'pending',
+    NULL
+FROM orders o
+WHERE o.order_id = 'c3333333-3333-3333-3333-333333333333'
 ON CONFLICT (payment_id) DO NOTHING;
 
 INSERT INTO cart (cart_id, user_id, product_id, quantity, added_at)

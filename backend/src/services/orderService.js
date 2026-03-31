@@ -1,4 +1,5 @@
 import { pool } from '../db/pool.js';
+import { invalidateCache } from './cacheService.js';
 
 export async function listOrders(userId) {
   const { rows } = await pool.query(
@@ -22,11 +23,11 @@ export async function listOrders(userId) {
           '[]'::json
         ) AS items
       FROM orders o
-      LEFT JOIN payments p ON p.order_id = o.order_id
-      LEFT JOIN order_items oi ON oi.order_id = o.order_id
+      LEFT JOIN payments p ON p.order_id = o.order_id AND p.order_placed_at = o.placed_at
+      LEFT JOIN order_items oi ON oi.order_id = o.order_id AND oi.order_placed_at = o.placed_at
       LEFT JOIN products pr ON pr.product_id = oi.product_id
       WHERE o.user_id = $1
-      GROUP BY o.order_id, p.payment_id
+      GROUP BY o.order_id, o.placed_at, p.payment_id
       ORDER BY o.placed_at DESC;
     `,
     [userId]
@@ -69,14 +70,15 @@ export async function checkoutCart(userId, paymentMethod = 'card') {
 
     const orderInsert = await client.query(
       `
-        INSERT INTO orders (user_id, status, total_amount)
-        VALUES ($1, 'paid', 0)
-        RETURNING order_id;
+        INSERT INTO orders (user_id, status, total_amount, placed_at)
+        VALUES ($1, 'paid', 0, NOW())
+        RETURNING order_id, placed_at;
       `,
       [userId]
     );
 
     const orderId = orderInsert.rows[0].order_id;
+    const orderPlacedAt = orderInsert.rows[0].placed_at;
     let totalAmount = 0;
 
     for (const item of cartResult.rows) {
@@ -84,10 +86,10 @@ export async function checkoutCart(userId, paymentMethod = 'card') {
 
       await client.query(
         `
-          INSERT INTO order_items (order_id, product_id, qty, unit_price)
-          VALUES ($1, $2, $3, $4);
+          INSERT INTO order_items (order_id, order_placed_at, product_id, qty, unit_price)
+          VALUES ($1, $2, $3, $4, $5);
         `,
-        [orderId, item.product_id, item.quantity, item.price]
+        [orderId, orderPlacedAt, item.product_id, item.quantity, item.price]
       );
 
       await client.query(
@@ -104,22 +106,25 @@ export async function checkoutCart(userId, paymentMethod = 'card') {
       `
         UPDATE orders
         SET total_amount = $1
-        WHERE order_id = $2;
+        WHERE order_id = $2 AND placed_at = $3;
       `,
-      [totalAmount, orderId]
+      [totalAmount, orderId, orderPlacedAt]
     );
 
     await client.query(
       `
-        INSERT INTO payments (order_id, method, status, paid_at)
-        VALUES ($1, $2, 'paid', NOW());
+        INSERT INTO payments (order_id, order_placed_at, method, status, paid_at)
+        VALUES ($1, $2, $3, 'paid', NOW());
       `,
-      [orderId, paymentMethod]
+      [orderId, orderPlacedAt, paymentMethod]
     );
 
     await client.query(`DELETE FROM cart WHERE user_id = $1`, [userId]);
     await client.query(`SELECT refresh_category_sales_summary()`);
     await client.query('COMMIT');
+
+    invalidateCache('catalog:');
+    invalidateCache('dashboard:');
 
     return {
       orderId,
@@ -133,4 +138,3 @@ export async function checkoutCart(userId, paymentMethod = 'card') {
     client.release();
   }
 }
-

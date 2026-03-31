@@ -31,28 +31,40 @@ CREATE TABLE IF NOT EXISTS products (
 );
 
 CREATE TABLE IF NOT EXISTS orders (
-    order_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id UUID NOT NULL DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users_account(user_id) ON DELETE CASCADE,
     status VARCHAR(30) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'shipped', 'delivered', 'cancelled')),
     total_amount NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (total_amount >= 0),
-    placed_at TIMESTAMP NOT NULL DEFAULT NOW()
+    placed_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (order_id, placed_at)
 );
 
 CREATE TABLE IF NOT EXISTS order_items (
     item_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    order_id UUID NOT NULL REFERENCES orders(order_id) ON DELETE CASCADE,
+    order_id UUID NOT NULL,
+    order_placed_at TIMESTAMP NOT NULL,
     product_id UUID NOT NULL REFERENCES products(product_id) ON DELETE RESTRICT,
     qty INT NOT NULL CHECK (qty > 0),
     unit_price NUMERIC(10, 2) NOT NULL CHECK (unit_price >= 0),
-    UNIQUE (order_id, product_id)
+    UNIQUE (order_id, order_placed_at, product_id),
+    CONSTRAINT fk_order_items_order
+        FOREIGN KEY (order_id, order_placed_at)
+        REFERENCES orders(order_id, placed_at)
+        ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS payments (
     payment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    order_id UUID NOT NULL UNIQUE REFERENCES orders(order_id) ON DELETE CASCADE,
+    order_id UUID NOT NULL,
+    order_placed_at TIMESTAMP NOT NULL,
     method VARCHAR(30) NOT NULL CHECK (method IN ('card', 'upi', 'wallet', 'cod')),
     status VARCHAR(30) NOT NULL CHECK (status IN ('pending', 'paid', 'failed', 'refunded')),
-    paid_at TIMESTAMP
+    paid_at TIMESTAMP,
+    UNIQUE (order_id, order_placed_at),
+    CONSTRAINT fk_payments_order
+        FOREIGN KEY (order_id, order_placed_at)
+        REFERENCES orders(order_id, placed_at)
+        ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS reviews (
@@ -82,7 +94,7 @@ CREATE INDEX IF NOT EXISTS idx_products_brand_trgm ON products USING GIN (LOWER(
 CREATE INDEX IF NOT EXISTS idx_products_description_trgm ON products USING GIN (LOWER(COALESCE(description, '')) gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id, placed_at DESC);
 CREATE INDEX IF NOT EXISTS idx_orders_pending_partial ON orders(placed_at DESC) WHERE status = 'pending';
-CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id, order_placed_at);
 CREATE INDEX IF NOT EXISTS idx_reviews_product_created ON reviews(product_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_cart_user ON cart(user_id, added_at DESC);
 
@@ -122,7 +134,7 @@ SELECT
 FROM categories c
 LEFT JOIN products p ON p.category_id = c.category_id
 LEFT JOIN order_items oi ON oi.product_id = p.product_id
-LEFT JOIN orders o ON o.order_id = oi.order_id AND o.status IN ('paid', 'shipped', 'delivered')
+LEFT JOIN orders o ON o.order_id = oi.order_id AND o.placed_at = oi.order_placed_at AND o.status IN ('paid', 'shipped', 'delivered')
 GROUP BY c.category_id, c.name
 WITH NO DATA;
 

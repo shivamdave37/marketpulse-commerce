@@ -1,4 +1,5 @@
 import { pool } from '../db/pool.js';
+import { withCache } from './cacheService.js';
 
 export async function getHomeCatalog({ search = '', category, sort = 'featured' }) {
   const normalizedSearch = search.trim();
@@ -64,35 +65,42 @@ export async function getHomeCatalog({ search = '', category, sort = 'featured' 
     LIMIT 24;
   `;
 
-  const { rows } = await pool.query(query, values);
-  return rows;
+  const cacheKey = `catalog:${normalizedSearch}:${category || 'all'}:${sort}`;
+  return withCache(cacheKey, 20_000, async () => {
+    const { rows } = await pool.query(query, values);
+    return rows;
+  });
 }
 
 export async function getCategories() {
-  const { rows } = await pool.query(`
-    SELECT
-      c.category_id,
-      c.name,
-      c.slug,
-      c.parent_id,
-      COUNT(p.product_id)::int AS product_count
-    FROM categories c
-    LEFT JOIN products p ON p.category_id = c.category_id
-    GROUP BY c.category_id
-    ORDER BY c.parent_id NULLS FIRST, c.name;
-  `);
+  return withCache('catalog:categories', 60_000, async () => {
+    const { rows } = await pool.query(`
+      SELECT
+        c.category_id,
+        c.name,
+        c.slug,
+        c.parent_id,
+        COUNT(p.product_id)::int AS product_count
+      FROM categories c
+      LEFT JOIN products p ON p.category_id = c.category_id
+      GROUP BY c.category_id
+      ORDER BY c.parent_id NULLS FIRST, c.name;
+    `);
 
-  return rows;
+    return rows;
+  });
 }
 
 export async function getFeaturedStats() {
-  const { rows } = await pool.query(`
-    SELECT
-      COUNT(*)::int AS total_products,
-      COALESCE(SUM(stock_qty), 0)::int AS total_stock,
-      ROUND(AVG(price)::numeric, 2) AS avg_price
-    FROM products;
-  `);
+  return withCache('catalog:stats', 30_000, async () => {
+    const { rows } = await pool.query(`
+      SELECT
+        COUNT(*)::int AS total_products,
+        COALESCE(SUM(stock_qty), 0)::int AS total_stock,
+        ROUND(AVG(price)::numeric, 2) AS avg_price
+      FROM products;
+    `);
 
-  return rows[0];
+    return rows[0];
+  });
 }

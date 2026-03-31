@@ -5,6 +5,7 @@ MarketPulse Commerce is a full-stack e-commerce starter built from your schema r
 - PostgreSQL schema with normalized commerce tables
 - Full-text product search using `tsvector` + GIN
 - Transaction-safe checkout workflow
+- Monthly order partitioning for time-range scale
 - Express backend API
 - React storefront inspired by modern marketplaces
 - Seed data and optimization objects like partial indexes and materialized views
@@ -93,8 +94,12 @@ npm run dev
 - Hierarchical categories
 - Product catalog with ratings and stock
 - Real-time full-text product search
+- Partial keyword search for marketplace-style discovery
 - Cart and checkout flow
 - ACID-safe order placement with row locking
+- Partitioned `orders` table by month for faster time-range access
+- In-memory cache for read-heavy catalog and dashboard queries
+- PgBouncer-ready pooled connection support via `DATABASE_POOL_URL`
 - Sales dashboard cards and category insights
 - Optimized indexes for read-heavy commerce queries
 
