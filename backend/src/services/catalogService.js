@@ -1,12 +1,19 @@
 import { pool } from '../db/pool.js';
 
 export async function getHomeCatalog({ search = '', category, sort = 'featured' }) {
-  const values = [search.trim()];
+  const normalizedSearch = search.trim();
+  const values = [normalizedSearch];
   const filters = [];
 
-  if (search.trim()) {
+  if (normalizedSearch) {
+    values.push(`%${normalizedSearch.toLowerCase()}%`);
     filters.push(
-      `p.search_vector @@ websearch_to_tsquery('english', $1)`
+      `(
+        p.search_vector @@ websearch_to_tsquery('english', $1)
+        OR LOWER(p.name) LIKE $2
+        OR LOWER(COALESCE(p.brand, '')) LIKE $2
+        OR LOWER(COALESCE(p.description, '')) LIKE $2
+      )`
     );
   }
 
@@ -38,7 +45,14 @@ export async function getHomeCatalog({ search = '', category, sort = 'featured' 
       COALESCE(ROUND(AVG(r.rating)::numeric, 1), 0) AS avg_rating,
       COUNT(r.review_id)::int AS review_count,
       CASE
-        WHEN $1::text <> '' THEN ts_rank(p.search_vector, websearch_to_tsquery('english', $1))
+        WHEN $1::text <> '' THEN
+          ts_rank(p.search_vector, websearch_to_tsquery('english', $1)) +
+          CASE
+            WHEN LOWER(p.name) LIKE $2 THEN 0.8
+            WHEN LOWER(COALESCE(p.brand, '')) LIKE $2 THEN 0.5
+            WHEN LOWER(COALESCE(p.description, '')) LIKE $2 THEN 0.2
+            ELSE 0
+          END
         ELSE 0
       END AS search_rank
     FROM products p
@@ -46,7 +60,7 @@ export async function getHomeCatalog({ search = '', category, sort = 'featured' 
     LEFT JOIN reviews r ON r.product_id = p.product_id
     ${filters.length ? `WHERE ${filters.join(' AND ')}` : ''}
     GROUP BY p.product_id, c.category_id
-    ORDER BY ${search.trim() ? 'search_rank DESC,' : ''} ${orderClause}
+    ORDER BY ${normalizedSearch ? 'search_rank DESC,' : ''} ${orderClause}
     LIMIT 24;
   `;
 

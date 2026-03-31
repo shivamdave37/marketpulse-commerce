@@ -1,4 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 CREATE TABLE IF NOT EXISTS users_account (
     user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -76,6 +77,9 @@ CREATE TABLE IF NOT EXISTS cart (
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
 CREATE INDEX IF NOT EXISTS idx_products_price ON products(price);
 CREATE INDEX IF NOT EXISTS idx_products_search ON products USING GIN(search_vector);
+CREATE INDEX IF NOT EXISTS idx_products_name_trgm ON products USING GIN (LOWER(name) gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_products_brand_trgm ON products USING GIN (LOWER(COALESCE(brand, '')) gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_products_description_trgm ON products USING GIN (LOWER(COALESCE(description, '')) gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id, placed_at DESC);
 CREATE INDEX IF NOT EXISTS idx_orders_pending_partial ON orders(placed_at DESC) WHERE status = 'pending';
 CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
