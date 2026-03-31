@@ -26,6 +26,9 @@ export const api = {
     const query = new URLSearchParams(params);
     return request(`/catalog?${query.toString()}`);
   },
+  getProduct(productId) {
+    return request(`/catalog/${productId}`);
+  },
   getCart() {
     return request('/cart');
   },

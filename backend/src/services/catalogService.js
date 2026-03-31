@@ -104,3 +104,83 @@ export async function getFeaturedStats() {
     return rows[0];
   });
 }
+
+export async function getProductDetail(productId) {
+  return withCache(`product:${productId}`, 20_000, async () => {
+    const productResult = await pool.query(
+      `
+        SELECT
+          p.product_id,
+          p.name,
+          p.description,
+          p.brand,
+          p.price,
+          p.stock_qty,
+          p.created_at,
+          c.category_id,
+          c.name AS category_name,
+          c.slug AS category_slug,
+          COALESCE(ROUND(AVG(r.rating)::numeric, 1), 0) AS avg_rating,
+          COUNT(r.review_id)::int AS review_count
+        FROM products p
+        LEFT JOIN categories c ON c.category_id = p.category_id
+        LEFT JOIN reviews r ON r.product_id = p.product_id
+        WHERE p.product_id = $1
+        GROUP BY p.product_id, c.category_id;
+      `,
+      [productId]
+    );
+
+    if (!productResult.rows.length) {
+      throw new Error('Product not found.');
+    }
+
+    const reviewsResult = await pool.query(
+      `
+        SELECT
+          r.review_id,
+          r.rating,
+          r.body,
+          r.created_at,
+          u.full_name
+        FROM reviews r
+        JOIN users_account u ON u.user_id = r.user_id
+        WHERE r.product_id = $1
+        ORDER BY r.created_at DESC;
+      `,
+      [productId]
+    );
+
+    const relatedResult = await pool.query(
+      `
+        SELECT
+          p.product_id,
+          p.name,
+          p.brand,
+          p.price,
+          p.stock_qty,
+          c.name AS category_name,
+          COALESCE(ROUND(AVG(r.rating)::numeric, 1), 0) AS avg_rating,
+          COUNT(r.review_id)::int AS review_count
+        FROM products p
+        LEFT JOIN categories c ON c.category_id = p.category_id
+        LEFT JOIN reviews r ON r.product_id = p.product_id
+        WHERE p.product_id <> $1
+          AND (
+            p.category_id = (SELECT category_id FROM products WHERE product_id = $1)
+            OR LOWER(COALESCE(p.brand, '')) = LOWER(COALESCE((SELECT brand FROM products WHERE product_id = $1), ''))
+          )
+        GROUP BY p.product_id, c.name
+        ORDER BY avg_rating DESC NULLS LAST, p.created_at DESC
+        LIMIT 4;
+      `,
+      [productId]
+    );
+
+    return {
+      product: productResult.rows[0],
+      reviews: reviewsResult.rows,
+      relatedProducts: relatedResult.rows
+    };
+  });
+}

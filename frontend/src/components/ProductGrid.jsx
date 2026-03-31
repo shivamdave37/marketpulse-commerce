@@ -6,7 +6,7 @@ function formatCurrency(value) {
   }).format(value);
 }
 
-export default function ProductGrid({ products, onAddToCart, busy }) {
+export default function ProductGrid({ products, onAddToCart, onViewProduct, busy }) {
   return (
     <section className="product-grid">
       {products.map((product) => (
@@ -48,7 +48,11 @@ export default function ProductGrid({ products, onAddToCart, busy }) {
               >
                 {Number(product.stock_qty) === 0 ? 'Out of stock' : 'Add to cart'}
               </button>
-              <button className="secondary-button" type="button">
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => onViewProduct(product.product_id)}
+              >
                 View details
               </button>
             </div>

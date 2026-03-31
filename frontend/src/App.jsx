@@ -4,6 +4,7 @@ import CategoryRail from './components/CategoryRail.jsx';
 import Header from './components/Header.jsx';
 import InsightsPanel from './components/InsightsPanel.jsx';
 import OrderTimeline from './components/OrderTimeline.jsx';
+import ProductDetailView from './components/ProductDetailView.jsx';
 import ProductGrid from './components/ProductGrid.jsx';
 import PromoShowcase from './components/PromoShowcase.jsx';
 import ServiceHighlights from './components/ServiceHighlights.jsx';
@@ -15,6 +16,7 @@ export default function App() {
     cart,
     orders,
     dashboard,
+    productDetail,
     filters,
     loading,
     busy,
@@ -22,7 +24,9 @@ export default function App() {
     updateFilters,
     addToCart,
     removeFromCart,
-    placeCheckout
+    placeCheckout,
+    openProduct,
+    closeProduct
   } = useStorefront();
   const [checkoutMessage, setCheckoutMessage] = useState('');
   const featuredProduct = catalog.products[0];
@@ -71,20 +75,37 @@ export default function App() {
 
       <section className="content-grid">
         <div className="content-main">
-          <div className="section-head">
-            <div>
-              <span className="eyebrow">Today's picks</span>
-              <h2>{loading ? 'Loading products...' : `${catalog.products.length} products ready to shop`}</h2>
-            </div>
-            <div className="catalog-stats">
-              <span>{catalog.stats.total_products || 0} listed</span>
-              <span>{catalog.stats.total_stock || 0} units in stock</span>
-              <span>Fast shopping layout inspired by major marketplaces</span>
-            </div>
-          </div>
+          {productDetail ? (
+            <ProductDetailView
+              detail={productDetail}
+              busy={busy}
+              onBack={closeProduct}
+              onAddToCart={addToCart}
+              onSelectRelated={openProduct}
+            />
+          ) : (
+            <>
+              <div className="section-head">
+                <div>
+                  <span className="eyebrow">Today's picks</span>
+                  <h2>{loading ? 'Loading products...' : `${catalog.products.length} products ready to shop`}</h2>
+                </div>
+                <div className="catalog-stats">
+                  <span>{catalog.stats.total_products || 0} listed</span>
+                  <span>{catalog.stats.total_stock || 0} units in stock</span>
+                  <span>Fast shopping layout inspired by major marketplaces</span>
+                </div>
+              </div>
 
-          <ProductGrid products={catalog.products} onAddToCart={addToCart} busy={busy} />
-          <OrderTimeline orders={orders} />
+              <ProductGrid
+                products={catalog.products}
+                onAddToCart={addToCart}
+                onViewProduct={openProduct}
+                busy={busy}
+              />
+              <OrderTimeline orders={orders} />
+            </>
+          )}
         </div>
 
         <CartPanel

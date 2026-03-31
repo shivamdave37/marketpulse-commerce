@@ -6,6 +6,7 @@ export function useStorefront() {
   const [cart, setCart] = useState({ items: [], summary: { items: 0, quantity: 0, subtotal: 0 } });
   const [orders, setOrders] = useState([]);
   const [dashboard, setDashboard] = useState({ stats: {}, topCategories: [], recentOrders: [] });
+  const [productDetail, setProductDetail] = useState(null);
   const [filters, setFilters] = useState({ search: '', category: '', sort: 'featured' });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -82,11 +83,28 @@ export function useStorefront() {
     }
   }
 
+  async function openProduct(productId) {
+    setBusy(true);
+    try {
+      const detail = await api.getProduct(productId);
+      setProductDetail(detail);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function closeProduct() {
+    setProductDetail(null);
+  }
+
   return {
     catalog,
     cart,
     orders,
     dashboard,
+    productDetail,
     filters,
     loading,
     busy,
@@ -94,6 +112,8 @@ export function useStorefront() {
     updateFilters,
     addToCart,
     removeFromCart,
-    placeCheckout
+    placeCheckout,
+    openProduct,
+    closeProduct
   };
 }

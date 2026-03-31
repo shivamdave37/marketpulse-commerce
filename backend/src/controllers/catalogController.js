@@ -1,7 +1,8 @@
 import {
   getCategories,
   getFeaturedStats,
-  getHomeCatalog
+  getHomeCatalog,
+  getProductDetail
 } from '../services/catalogService.js';
 
 export async function listCatalog(req, res, next) {
@@ -23,3 +24,11 @@ export async function listCatalog(req, res, next) {
   }
 }
 
+export async function showProduct(req, res, next) {
+  try {
+    const detail = await getProductDetail(req.params.productId);
+    res.json(detail);
+  } catch (error) {
+    next(error);
+  }
+}
