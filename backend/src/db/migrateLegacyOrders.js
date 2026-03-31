@@ -41,37 +41,13 @@ async function isOrdersPartitioned(client) {
   return rows[0]?.is_partitioned;
 }
 
-export async function migrateLegacyOrders(client) {
-  const {
-    rows: [{ has_orders_table }]
-  } = await client.query(`
-    SELECT to_regclass('public.orders') IS NOT NULL AS has_orders_table;
-  `);
-
-  if (!has_orders_table) {
-    return;
-  }
-
-  if (await isOrdersPartitioned(client)) {
-    await ensureMonthlyPartitions(client);
-    return;
-  }
-
+async function ensureOrderRelationColumns(client) {
   await client.query(`
     ALTER TABLE products ADD COLUMN IF NOT EXISTS image_url TEXT;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_address JSONB;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_fee NUMERIC(10, 2) NOT NULL DEFAULT 0;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_amount NUMERIC(10, 2) NOT NULL DEFAULT 0;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon_code VARCHAR(40);
-    ALTER TABLE order_items DROP CONSTRAINT IF EXISTS fk_order_items_order;
-    ALTER TABLE order_items DROP CONSTRAINT IF EXISTS order_items_order_id_fkey;
-    ALTER TABLE order_items DROP CONSTRAINT IF EXISTS order_items_order_id_order_placed_at_product_id_key;
-    ALTER TABLE order_items DROP CONSTRAINT IF EXISTS order_items_order_product_unique;
-    ALTER TABLE payments DROP CONSTRAINT IF EXISTS fk_payments_order;
-    ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_order_id_fkey;
-    ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_order_id_key;
-    ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_order_id_order_placed_at_key;
-    ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_order_pair_unique;
     ALTER TABLE order_items ADD COLUMN IF NOT EXISTS order_placed_at TIMESTAMP;
     ALTER TABLE payments ADD COLUMN IF NOT EXISTS order_placed_at TIMESTAMP;
   `);
@@ -88,6 +64,79 @@ export async function migrateLegacyOrders(client) {
     FROM orders o
     WHERE p.order_id = o.order_id
       AND p.order_placed_at IS NULL;
+  `);
+}
+
+async function ensureOrderRelationConstraints(client) {
+  await client.query(`
+    ALTER TABLE order_items DROP CONSTRAINT IF EXISTS fk_order_items_order;
+    ALTER TABLE order_items DROP CONSTRAINT IF EXISTS order_items_order_id_fkey;
+    ALTER TABLE order_items DROP CONSTRAINT IF EXISTS order_items_order_id_order_placed_at_product_id_key;
+    ALTER TABLE order_items DROP CONSTRAINT IF EXISTS order_items_order_product_unique;
+    ALTER TABLE payments DROP CONSTRAINT IF EXISTS fk_payments_order;
+    ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_order_id_fkey;
+    ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_order_id_key;
+    ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_order_id_order_placed_at_key;
+    ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_order_pair_unique;
+  `);
+
+  await client.query(`
+    ALTER TABLE order_items ALTER COLUMN order_placed_at SET NOT NULL;
+    ALTER TABLE payments ALTER COLUMN order_placed_at SET NOT NULL;
+
+    ALTER TABLE order_items ADD CONSTRAINT order_items_order_product_unique
+      UNIQUE (order_id, order_placed_at, product_id);
+
+    ALTER TABLE order_items ADD CONSTRAINT fk_order_items_order
+      FOREIGN KEY (order_id, order_placed_at)
+      REFERENCES orders(order_id, placed_at)
+      ON DELETE CASCADE;
+
+    ALTER TABLE payments ADD CONSTRAINT payments_order_pair_unique
+      UNIQUE (order_id, order_placed_at);
+
+    ALTER TABLE payments ADD CONSTRAINT fk_payments_order
+      FOREIGN KEY (order_id, order_placed_at)
+      REFERENCES orders(order_id, placed_at)
+      ON DELETE CASCADE;
+  `);
+
+  await client.query(`
+    CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id, placed_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_orders_pending_partial ON orders(placed_at DESC) WHERE status = 'pending';
+    CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id, order_placed_at);
+  `);
+}
+
+export async function migrateLegacyOrders(client) {
+  const {
+    rows: [{ has_orders_table }]
+  } = await client.query(`
+    SELECT to_regclass('public.orders') IS NOT NULL AS has_orders_table;
+  `);
+
+  if (!has_orders_table) {
+    return;
+  }
+
+  await ensureOrderRelationColumns(client);
+
+  if (await isOrdersPartitioned(client)) {
+    await ensureOrderRelationConstraints(client);
+    await ensureMonthlyPartitions(client);
+    return;
+  }
+
+  await client.query(`
+    ALTER TABLE order_items DROP CONSTRAINT IF EXISTS fk_order_items_order;
+    ALTER TABLE order_items DROP CONSTRAINT IF EXISTS order_items_order_id_fkey;
+    ALTER TABLE order_items DROP CONSTRAINT IF EXISTS order_items_order_id_order_placed_at_product_id_key;
+    ALTER TABLE order_items DROP CONSTRAINT IF EXISTS order_items_order_product_unique;
+    ALTER TABLE payments DROP CONSTRAINT IF EXISTS fk_payments_order;
+    ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_order_id_fkey;
+    ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_order_id_key;
+    ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_order_id_order_placed_at_key;
+    ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_order_pair_unique;
   `);
 
   await client.query(`
@@ -144,33 +193,8 @@ export async function migrateLegacyOrders(client) {
     DROP TABLE IF EXISTS orders_legacy_backup CASCADE;
     ALTER TABLE orders RENAME TO orders_legacy_backup;
     ALTER TABLE orders_partitioned RENAME TO orders;
-
-    ALTER TABLE order_items ALTER COLUMN order_placed_at SET NOT NULL;
-    ALTER TABLE payments ALTER COLUMN order_placed_at SET NOT NULL;
-
-    ALTER TABLE order_items DROP CONSTRAINT IF EXISTS order_items_order_id_product_id_key;
-    ALTER TABLE order_items ADD CONSTRAINT order_items_order_product_unique
-      UNIQUE (order_id, order_placed_at, product_id);
-
-    ALTER TABLE order_items ADD CONSTRAINT fk_order_items_order
-      FOREIGN KEY (order_id, order_placed_at)
-      REFERENCES orders(order_id, placed_at)
-      ON DELETE CASCADE;
-
-    ALTER TABLE payments ADD CONSTRAINT payments_order_pair_unique
-      UNIQUE (order_id, order_placed_at);
-
-    ALTER TABLE payments ADD CONSTRAINT fk_payments_order
-      FOREIGN KEY (order_id, order_placed_at)
-      REFERENCES orders(order_id, placed_at)
-      ON DELETE CASCADE;
   `);
 
-  await client.query(`
-    CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id, placed_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_orders_pending_partial ON orders(placed_at DESC) WHERE status = 'pending';
-    CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id, order_placed_at);
-  `);
-
+  await ensureOrderRelationConstraints(client);
   await ensureMonthlyPartitions(client);
 }
