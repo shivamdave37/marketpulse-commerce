@@ -6,7 +6,14 @@ function formatCurrency(value) {
   }).format(value);
 }
 
-export default function ProductGrid({ products, onAddToCart, onViewProduct, busy }) {
+export default function ProductGrid({
+  products,
+  wishlist,
+  onAddToCart,
+  onViewProduct,
+  onToggleWishlist,
+  busy
+}) {
   return (
     <section className="product-grid">
       {products.map((product) => (
@@ -56,6 +63,15 @@ export default function ProductGrid({ products, onAddToCart, onViewProduct, busy
                 View details
               </button>
             </div>
+            <button
+              className="wishlist-link"
+              type="button"
+              onClick={() => onToggleWishlist(product.product_id)}
+            >
+              {wishlist.some((item) => item.product_id === product.product_id)
+                ? 'Remove from wishlist'
+                : 'Save to wishlist'}
+            </button>
           </div>
         </article>
       ))}

@@ -29,6 +29,18 @@ export const api = {
   getProduct(productId) {
     return request(`/catalog/${productId}`);
   },
+  getAddresses() {
+    return request('/customer/addresses');
+  },
+  getWishlist() {
+    return request('/customer/wishlist');
+  },
+  toggleWishlist(productId) {
+    return request('/customer/wishlist', {
+      method: 'POST',
+      body: JSON.stringify({ productId })
+    });
+  },
   getCart() {
     return request('/cart');
   },
@@ -44,10 +56,10 @@ export const api = {
   getOrders() {
     return request('/orders');
   },
-  checkout(method) {
+  checkout(method, addressId) {
     return request('/orders/checkout', {
       method: 'POST',
-      body: JSON.stringify({ method })
+      body: JSON.stringify({ method, addressId })
     });
   },
   getDashboard() {

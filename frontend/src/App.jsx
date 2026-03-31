@@ -17,6 +17,10 @@ export default function App() {
     orders,
     dashboard,
     productDetail,
+    addresses,
+    wishlist,
+    selectedAddressId,
+    selectedPaymentMethod,
     filters,
     loading,
     busy,
@@ -26,14 +30,17 @@ export default function App() {
     removeFromCart,
     placeCheckout,
     openProduct,
-    closeProduct
+    closeProduct,
+    toggleWishlist,
+    setSelectedAddressId,
+    setSelectedPaymentMethod
   } = useStorefront();
   const [checkoutMessage, setCheckoutMessage] = useState('');
   const featuredProduct = catalog.products[0];
 
   async function handleCheckout() {
     try {
-      const result = await placeCheckout('card');
+      const result = await placeCheckout(selectedPaymentMethod);
       setCheckoutMessage(`Order placed successfully. Order ID: ${result.orderId}`);
     } catch (_error) {
       setCheckoutMessage('');
@@ -46,6 +53,7 @@ export default function App() {
         filters={filters}
         cart={cart}
         orders={orders}
+        wishlist={wishlist}
         onSearchChange={(value) => updateFilters({ search: value })}
         onSortChange={(value) => updateFilters({ sort: value })}
       />
@@ -78,9 +86,11 @@ export default function App() {
           {productDetail ? (
             <ProductDetailView
               detail={productDetail}
+              wishlist={wishlist}
               busy={busy}
               onBack={closeProduct}
               onAddToCart={addToCart}
+              onToggleWishlist={toggleWishlist}
               onSelectRelated={openProduct}
             />
           ) : (
@@ -99,8 +109,10 @@ export default function App() {
 
               <ProductGrid
                 products={catalog.products}
+                wishlist={wishlist}
                 onAddToCart={addToCart}
                 onViewProduct={openProduct}
+                onToggleWishlist={toggleWishlist}
                 busy={busy}
               />
               <OrderTimeline orders={orders} />
@@ -110,6 +122,11 @@ export default function App() {
 
         <CartPanel
           cart={cart}
+          addresses={addresses}
+          selectedAddressId={selectedAddressId}
+          selectedPaymentMethod={selectedPaymentMethod}
+          onSelectAddress={setSelectedAddressId}
+          onSelectPayment={setSelectedPaymentMethod}
           onRemove={removeFromCart}
           onCheckout={handleCheckout}
           busy={busy}

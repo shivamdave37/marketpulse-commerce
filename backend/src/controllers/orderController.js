@@ -11,10 +11,13 @@ export async function fetchOrders(req, res, next) {
 
 export async function checkout(req, res, next) {
   try {
-    const result = await checkoutCart(req.userId, req.body.method || 'card');
+    const result = await checkoutCart(
+      req.userId,
+      req.body.method || 'card',
+      req.body.addressId || null
+    );
     res.json(result);
   } catch (error) {
     next(error);
   }
 }
-

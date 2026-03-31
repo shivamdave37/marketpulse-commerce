@@ -12,12 +12,15 @@ function formatDate(value) {
 
 export default function ProductDetailView({
   detail,
+  wishlist,
   busy,
   onBack,
   onAddToCart,
+  onToggleWishlist,
   onSelectRelated
 }) {
   const { product, reviews, relatedProducts } = detail;
+  const inWishlist = wishlist.some((item) => item.product_id === product.product_id);
 
   return (
     <section className="detail-page">
@@ -87,6 +90,9 @@ export default function ProductDetailView({
               disabled={busy || Number(product.stock_qty) === 0}
             >
               Buy now
+            </button>
+            <button className="wishlist-link" type="button" onClick={() => onToggleWishlist(product.product_id)}>
+              {inWishlist ? 'Saved in wishlist' : 'Add to wishlist'}
             </button>
           </div>
         </div>

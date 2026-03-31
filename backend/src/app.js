@@ -7,6 +7,7 @@ import { requestUser } from './middleware/requestUser.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import cartRoutes from './routes/cartRoutes.js';
 import catalogRoutes from './routes/catalogRoutes.js';
+import customerRoutes from './routes/customerRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 
 export const app = express();
@@ -30,6 +31,7 @@ app.use('/api/catalog', catalogRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/customer', customerRoutes);
 
 app.use(express.static(frontendDistPath));
 

@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS orders (
     user_id UUID NOT NULL REFERENCES users_account(user_id) ON DELETE CASCADE,
     status VARCHAR(30) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'shipped', 'delivered', 'cancelled')),
     total_amount NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (total_amount >= 0),
+    shipping_address JSONB,
     placed_at TIMESTAMP NOT NULL DEFAULT NOW(),
     PRIMARY KEY (order_id, placed_at)
 );
@@ -86,6 +87,29 @@ CREATE TABLE IF NOT EXISTS cart (
     UNIQUE (user_id, product_id)
 );
 
+CREATE TABLE IF NOT EXISTS user_addresses (
+    address_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users_account(user_id) ON DELETE CASCADE,
+    label VARCHAR(50) NOT NULL,
+    recipient_name VARCHAR(120) NOT NULL,
+    phone VARCHAR(32) NOT NULL,
+    line1 VARCHAR(255) NOT NULL,
+    city VARCHAR(120) NOT NULL,
+    state VARCHAR(120) NOT NULL,
+    postal_code VARCHAR(20) NOT NULL,
+    country VARCHAR(80) NOT NULL DEFAULT 'India',
+    is_default BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS wishlist_items (
+    wishlist_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users_account(user_id) ON DELETE CASCADE,
+    product_id UUID NOT NULL REFERENCES products(product_id) ON DELETE CASCADE,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    UNIQUE (user_id, product_id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
 CREATE INDEX IF NOT EXISTS idx_products_price ON products(price);
 CREATE INDEX IF NOT EXISTS idx_products_search ON products USING GIN(search_vector);
@@ -97,6 +121,8 @@ CREATE INDEX IF NOT EXISTS idx_orders_pending_partial ON orders(placed_at DESC) 
 CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id, order_placed_at);
 CREATE INDEX IF NOT EXISTS idx_reviews_product_created ON reviews(product_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_cart_user ON cart(user_id, added_at DESC);
+CREATE INDEX IF NOT EXISTS idx_addresses_user ON user_addresses(user_id, is_default DESC, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_wishlist_user ON wishlist_items(user_id, created_at DESC);
 
 CREATE OR REPLACE FUNCTION set_product_search_vector()
 RETURNS TRIGGER AS $$

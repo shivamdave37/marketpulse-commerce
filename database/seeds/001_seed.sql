@@ -29,7 +29,11 @@ VALUES
 ('a5555555-5555-5555-5555-555555555555', 'StrideFit Everyday Sneakers', 'Breathable lightweight sneakers built for city walks and long wear.', 'StrideFit', 3499.00, 35, 5),
 ('a6666666-6666-6666-6666-666666666666', 'Orbit Watch S2', 'Fitness smartwatch with sleep tracking, GPS, and seven-day battery.', 'Orbit', 11999.00, 24, 7),
 ('a7777777-7777-7777-7777-777777777777', 'ViewMax 55 4K TV', '55-inch 4K smart TV with HDR support and voice remote.', 'ViewMax', 45999.00, 9, 1),
-('a8888888-8888-8888-8888-888888888888', 'Nimbus Stand Mixer', 'Countertop mixer with 6 speed levels for baking and meal prep.', 'Nimbus', 12999.00, 14, 4)
+('a8888888-8888-8888-8888-888888888888', 'Nimbus Stand Mixer', 'Countertop mixer with 6 speed levels for baking and meal prep.', 'Nimbus', 12999.00, 14, 4),
+('a9999999-9999-9999-9999-999999999999', 'AeroCarry Cabin Backpack', 'Travel-ready backpack with laptop sleeve, bottle pockets, and anti-theft zip.', 'AeroCarry', 2899.00, 51, 5),
+('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'PulseSound Party Speaker', 'Portable party speaker with bass boost, RGB lighting, and 12-hour battery.', 'PulseSound', 15499.00, 17, 6),
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'HomeBrew Coffee Machine', 'Compact coffee machine with milk frother and programmable brewing.', 'HomeBrew', 18499.00, 13, 4),
+('cccccccc-cccc-cccc-cccc-cccccccccccc', 'SkyTab 11', 'Entertainment tablet with stereo speakers, long battery life, and bright display.', 'SkyTab', 22999.00, 19, 1)
 ON CONFLICT (product_id) DO NOTHING;
 
 INSERT INTO reviews (review_id, product_id, user_id, rating, body, created_at)
@@ -148,5 +152,19 @@ VALUES
 ('f1111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'a2222222-2222-2222-2222-222222222222', 1, NOW() - INTERVAL '2 hours'),
 ('f2222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', 'a3333333-3333-3333-3333-333333333333', 2, NOW() - INTERVAL '45 minutes')
 ON CONFLICT (cart_id) DO NOTHING;
+
+INSERT INTO user_addresses (
+    address_id, user_id, label, recipient_name, phone, line1, city, state, postal_code, country, is_default
+)
+VALUES
+('1111aaaa-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'Home', 'Aarav Sharma', '+919999000001', '221 Residency Road', 'Bengaluru', 'Karnataka', '560001', 'India', TRUE),
+('2222aaaa-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', 'Office', 'Aarav Sharma', '+919999000001', '14 MG Road Tech Park', 'Bengaluru', 'Karnataka', '560008', 'India', FALSE)
+ON CONFLICT (address_id) DO NOTHING;
+
+INSERT INTO wishlist_items (wishlist_id, user_id, product_id)
+VALUES
+('3333aaaa-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111', 'a6666666-6666-6666-6666-666666666666'),
+('4444aaaa-4444-4444-4444-444444444444', '11111111-1111-1111-1111-111111111111', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb')
+ON CONFLICT (wishlist_id) DO NOTHING;
 
 REFRESH MATERIALIZED VIEW mv_category_sales_summary;

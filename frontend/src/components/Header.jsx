@@ -2,6 +2,7 @@ export default function Header({
   filters,
   cart,
   orders,
+  wishlist,
   onSearchChange,
   onSortChange
 }) {
@@ -54,6 +55,10 @@ export default function Header({
           <div className="nav-card">
             <span>Orders</span>
             <strong>{orders.length}</strong>
+          </div>
+          <div className="nav-card">
+            <span>Wishlist</span>
+            <strong>{wishlist.length}</strong>
           </div>
           <div className="nav-card nav-card--accent">
             <span>Cart</span>

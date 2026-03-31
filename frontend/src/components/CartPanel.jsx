@@ -6,12 +6,51 @@ function formatCurrency(value) {
   }).format(value);
 }
 
-export default function CartPanel({ cart, onRemove, onCheckout, busy }) {
+export default function CartPanel({
+  cart,
+  addresses,
+  selectedAddressId,
+  selectedPaymentMethod,
+  onSelectAddress,
+  onSelectPayment,
+  onRemove,
+  onCheckout,
+  busy
+}) {
   return (
     <aside className="panel">
       <div className="panel__head">
         <h2>Your Cart</h2>
         <span>{cart.summary.quantity} items</span>
+      </div>
+      <div className="checkout-preferences">
+        <label className="field">
+          <span>Delivery address</span>
+          <select value={selectedAddressId} onChange={(event) => onSelectAddress(event.target.value)}>
+            {addresses.map((address) => (
+              <option key={address.address_id} value={address.address_id}>
+                {address.label} - {address.city}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <div className="payment-choice">
+          <span>Payment</span>
+          <div className="payment-choice__row">
+            {['card', 'upi', 'wallet', 'cod'].map((method) => (
+              <button
+                key={method}
+                type="button"
+                className={selectedPaymentMethod === method ? 'chip chip--active' : 'chip'}
+                onClick={() => onSelectPayment(method)}
+              >
+                <strong>{method.toUpperCase()}</strong>
+                <span>Demo</span>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
       <div className="cart-benefits">
         <span>Secure checkout</span>

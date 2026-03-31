@@ -36,7 +36,7 @@ export async function listOrders(userId) {
   return rows;
 }
 
-export async function checkoutCart(userId, paymentMethod = 'card') {
+export async function checkoutCart(userId, paymentMethod = 'card', addressId = null) {
   const client = await pool.connect();
 
   try {
@@ -62,6 +62,34 @@ export async function checkoutCart(userId, paymentMethod = 'card') {
       throw new Error('Your cart is empty.');
     }
 
+    const addressResult = await client.query(
+      `
+        SELECT
+          address_id,
+          label,
+          recipient_name,
+          phone,
+          line1,
+          city,
+          state,
+          postal_code,
+          country,
+          is_default
+        FROM user_addresses
+        WHERE user_id = $1
+          AND ($2::uuid IS NULL OR address_id = $2)
+        ORDER BY is_default DESC, created_at DESC
+        LIMIT 1;
+      `,
+      [userId, addressId]
+    );
+
+    if (!addressResult.rows.length) {
+      throw new Error('Please select a delivery address.');
+    }
+
+    const shippingAddress = addressResult.rows[0];
+
     for (const item of cartResult.rows) {
       if (Number(item.stock_qty) < Number(item.quantity)) {
         throw new Error(`Insufficient stock for ${item.name}.`);
@@ -70,11 +98,11 @@ export async function checkoutCart(userId, paymentMethod = 'card') {
 
     const orderInsert = await client.query(
       `
-        INSERT INTO orders (user_id, status, total_amount, placed_at)
-        VALUES ($1, 'paid', 0, NOW())
+        INSERT INTO orders (user_id, status, total_amount, shipping_address, placed_at)
+        VALUES ($1, 'paid', 0, $2, NOW())
         RETURNING order_id, placed_at;
       `,
-      [userId]
+      [userId, JSON.stringify(shippingAddress)]
     );
 
     const orderId = orderInsert.rows[0].order_id;
