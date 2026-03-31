@@ -9,20 +9,23 @@ function formatCurrency(value) {
 export default function InsightsPanel({ stats, topCategories, recentOrders }) {
   return (
     <section className="dashboard">
-      <div className="metric-card">
-        <span>Orders</span>
+      <div className="metric-card metric-card--highlight">
+        <span>Marketplace orders</span>
         <strong>{stats.total_orders || 0}</strong>
+        <p>Live purchase activity across the catalog</p>
       </div>
       <div className="metric-card">
-        <span>Revenue</span>
+        <span>GMV</span>
         <strong>{formatCurrency(stats.gross_revenue)}</strong>
+        <p>Realtime sales total from all transactions</p>
       </div>
       <div className="metric-card">
-        <span>Pending</span>
+        <span>Open orders</span>
         <strong>{stats.pending_orders || 0}</strong>
+        <p>Pending shipments and active payment flows</p>
       </div>
       <div className="insight-card">
-        <h3>Top Categories</h3>
+        <h3>Trending Categories</h3>
         {topCategories.map((item) => (
           <div key={item.category_id} className="insight-row">
             <span>{item.category_name}</span>
@@ -31,7 +34,7 @@ export default function InsightsPanel({ stats, topCategories, recentOrders }) {
         ))}
       </div>
       <div className="insight-card">
-        <h3>Recent Orders</h3>
+        <h3>Recent Buyers</h3>
         {recentOrders.map((order) => (
           <div key={order.order_id} className="insight-row">
             <span>{order.full_name}</span>
@@ -42,4 +45,3 @@ export default function InsightsPanel({ stats, topCategories, recentOrders }) {
     </section>
   );
 }
-

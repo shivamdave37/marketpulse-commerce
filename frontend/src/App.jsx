@@ -5,6 +5,8 @@ import Header from './components/Header.jsx';
 import InsightsPanel from './components/InsightsPanel.jsx';
 import OrderTimeline from './components/OrderTimeline.jsx';
 import ProductGrid from './components/ProductGrid.jsx';
+import PromoShowcase from './components/PromoShowcase.jsx';
+import ServiceHighlights from './components/ServiceHighlights.jsx';
 import { useStorefront } from './hooks/useStorefront.js';
 
 export default function App() {
@@ -23,6 +25,7 @@ export default function App() {
     placeCheckout
   } = useStorefront();
   const [checkoutMessage, setCheckoutMessage] = useState('');
+  const featuredProduct = catalog.products[0];
 
   async function handleCheckout() {
     try {
@@ -37,9 +40,19 @@ export default function App() {
     <main className="page-shell">
       <Header
         filters={filters}
+        cart={cart}
+        orders={orders}
         onSearchChange={(value) => updateFilters({ search: value })}
         onSortChange={(value) => updateFilters({ sort: value })}
       />
+
+      <PromoShowcase
+        stats={catalog.stats}
+        featuredProduct={featuredProduct}
+        cart={cart}
+      />
+
+      <ServiceHighlights />
 
       <InsightsPanel
         stats={dashboard.stats}
@@ -60,12 +73,13 @@ export default function App() {
         <div className="content-main">
           <div className="section-head">
             <div>
-              <span className="eyebrow">Catalog</span>
-              <h2>{loading ? 'Loading products...' : `${catalog.products.length} products live`}</h2>
+              <span className="eyebrow">Today's picks</span>
+              <h2>{loading ? 'Loading products...' : `${catalog.products.length} products ready to shop`}</h2>
             </div>
             <div className="catalog-stats">
               <span>{catalog.stats.total_products || 0} listed</span>
               <span>{catalog.stats.total_stock || 0} units in stock</span>
+              <span>Fast shopping layout inspired by major marketplaces</span>
             </div>
           </div>
 
@@ -83,4 +97,3 @@ export default function App() {
     </main>
   );
 }
-

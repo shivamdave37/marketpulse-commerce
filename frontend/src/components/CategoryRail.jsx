@@ -5,7 +5,8 @@ export default function CategoryRail({ categories, activeCategory, onSelect }) {
         className={!activeCategory ? 'chip chip--active' : 'chip'}
         onClick={() => onSelect('')}
       >
-        All
+        <strong>All</strong>
+        <span>Browse everything</span>
       </button>
       {categories.map((category) => (
         <button
@@ -13,11 +14,10 @@ export default function CategoryRail({ categories, activeCategory, onSelect }) {
           className={activeCategory === category.slug ? 'chip chip--active' : 'chip'}
           onClick={() => onSelect(category.slug)}
         >
-          {category.name}
-          <span>{category.product_count}</span>
+          <strong>{category.name}</strong>
+          <span>{category.product_count} items</span>
         </button>
       ))}
     </section>
   );
 }
-

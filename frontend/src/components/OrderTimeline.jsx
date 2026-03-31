@@ -10,7 +10,7 @@ export default function OrderTimeline({ orders }) {
   return (
     <section className="panel">
       <div className="panel__head">
-        <h2>Order Timeline</h2>
+        <h2>Your Orders</h2>
         <span>{orders.length} orders</span>
       </div>
       {orders.length ? (
@@ -22,6 +22,10 @@ export default function OrderTimeline({ orders }) {
                 <span>{formatCurrency(order.total_amount)}</span>
               </div>
               <p>{new Date(order.placed_at).toLocaleString()}</p>
+              <div className="order-chip-row">
+                <span className="order-chip">Payment: {order.payment_method || 'pending'}</span>
+                <span className="order-chip">Status: {order.payment_status || order.status}</span>
+              </div>
               <div className="order-items">
                 {order.items.map((item) => (
                   <span key={`${order.order_id}-${item.productId}`}>
@@ -38,4 +42,3 @@ export default function OrderTimeline({ orders }) {
     </section>
   );
 }
-
