@@ -133,3 +133,43 @@ Your public frontend link will be the Render web service URL, which will look li
 `https://marketpulse-web.onrender.com`
 
 The exact URL is assigned by Render when you deploy.
+
+## Deploy Frontend on Netlify
+
+The storefront can be deployed on Netlify without removing any customer features. The only requirement is that the backend API and PostgreSQL database stay deployed on a backend host.
+
+### Netlify Build Settings
+
+- Base directory: `frontend`
+- Build command: `npm install && npm run build`
+- Publish directory: `dist`
+
+This repo already includes [netlify.toml](/C:/Users/shiva/OneDrive/Desktop/CODEX/netlify.toml) for those settings and SPA routing.
+
+### Netlify Environment Variables
+
+- `VITE_API_URL` = your backend URL ending with `/api`
+- `VITE_USER_ID` = `11111111-1111-1111-1111-111111111111`
+
+Example:
+
+```text
+VITE_API_URL=https://your-backend-host.example.com/api
+VITE_USER_ID=11111111-1111-1111-1111-111111111111
+```
+
+### Backend Environment Variables For Netlify
+
+On the backend host, set:
+
+- `FRONTEND_URL` = your Netlify site URL
+- `CORS_ALLOWED_ORIGINS` = comma-separated frontend origins that may call the API
+
+Example:
+
+```text
+FRONTEND_URL=https://marketpulse-commerce.netlify.app
+CORS_ALLOWED_ORIGINS=https://marketpulse-commerce.netlify.app,http://localhost:5173
+```
+
+This keeps product search, cart, checkout, wishlist, coupons, orders, and other customer features working after moving only the frontend to Netlify.

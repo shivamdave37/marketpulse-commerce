@@ -17,7 +17,13 @@ const frontendDistPath = path.resolve(__dirname, '../../frontend/dist');
 
 app.use(
   cors({
-    origin: env.frontendUrl
+    origin(origin, callback) {
+      if (!origin || env.allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error('Origin not allowed by CORS'));
+    }
   })
 );
 app.use(express.json());
